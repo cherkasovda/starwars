@@ -5,7 +5,6 @@ import ErrorIndication from '../error-indication/error-indication';
 import SwapiService from '../../services/swapi-service';
 
 import './random-planet.css';
-import ErrorIndicator from '../error-indication/error-indication';
 
 export default class RandomPlanet extends Component {
     constructor() {
@@ -15,8 +14,7 @@ export default class RandomPlanet extends Component {
             planet: {},
             loading: true
         };
-        this.updatePlanet();
-        this.interval = setInterval(this.updatePlanet, 2500)
+
     }
 
     onPlanetLoader = (planet) => {
@@ -44,13 +42,21 @@ export default class RandomPlanet extends Component {
             .catch(this.onError);
     };
 
+    componentDidMount() {
+        this.updatePlanet();
+        this.interval = setInterval(this.updatePlanet, 5000)
+    }
+    componentWillUnmount() {
+        clearInterval(this.interval)
+    }
+
     render() {
 
         const { planet, loading, error } = this.state;
         const hasData = !(loading || error);
 
-        const errorMessage = error ? <ErrorIndicator /> : null;
-        const spinner = loading ? <spinner /> : null;
+        const errorMessage = error ? <ErrorIndication /> : null;
+        const spinner = loading ? <Spinner /> : null;
         const content = hasData ? <PlanetView planet={planet} /> : null;
 
         return (

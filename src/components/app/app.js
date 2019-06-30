@@ -1,130 +1,69 @@
-/* eslint-disable default-case */
-import React from 'react';
+import React, { Component } from 'react';
+import Header from '../header/header';
+import RandomPlanet from '../random-planet/random-planet';
+import ErrorButton from "../error-button/error-button";
+import PeoplePage from "../people-page/people-page";
 import './app.css';
+import ErrorIndicator from "../error-indication/error-indication";
+import SwapiService from "../../services/swapi-service";
+import ItemList from "../item-list/item-list";
+import PersonDetails from "../person-details/person-details";
 
-import AppHeader from '../app-header/app-header';
-import SearchPanel from '../search-panel/search-panel';
-import TodoList from '../todo-list/todo-list';
-import ItemStatusFilter from '../item-status-filter/item-status-filter';
-import AddListItem from "../add-list-item/add-list-item";
-import './app.css';
 
-export default class App extends React.Component {
-    constructor() {
-        super();
+
+export default class App extends Component {
+    swapiService = new SwapiService();
+
+    constructor(props) {
+        super(props);
         this.state = {
-            todoData: [
-                this.createTodoItem('DRink Coffee'),
-                this.createTodoItem('Make Awesome App'),
-                this.createTodoItem('Have a lunch')
-            ],
-            tern: '',
-            filterItems: 'all'
+            showRandomPlanet: true,
+            selectedPerson: null,
+            hasError: false
+
         };
     }
-    id = 1;
-
-    createTodoItem(label) {
-        return {
-            label,
-            important: false,
-            done: false,
-            id: this.id++
-        }
-    }
-
-    deleteItem = (id) => {
-        this.setState(
-            ({ todoData }) => {
-                const index = todoData.findIndex((el) => el.id === id);
-                const newState = [
-                    ...todoData.slice(0, index),
-                    ...todoData.slice(index + 1)
-                ];
-                return { todoData: newState }
-            }
-        );
-    };
-    addItem = (text) => {
-        this.setState(({ todoData }) => {
-            return {
-                todoData: [
-                    ...todoData,
-                    this.createTodoItem(text)
-                ]
-            }
+    componentDidCatch(error, errorInfo) {
+        this.setState({
+            hasError: true
         })
-    };
-    toggleProp = (arr, id, propName) => {
-        const index = arr.findIndex((el) => el.id === id),
-            oldItem = arr[index],
-            newItem = { ...oldItem, [propName]: !oldItem[propName] };
-        return [
-            ...arr.slice(0, index),
-            newItem,
-            ...arr.slice(index + 1)
-        ];
-    };
-    labelClick = id => {
-        this.setState(
-            ({ todoData }) => {
-                return { todoData: this.toggleProp(todoData, id, 'important') }
-            });
-    };
-    buttonClick = id => {
+    }
 
-        this.setState(
-            ({ todoData }) => {
-                return { todoData: this.toggleProp(todoData, id, 'done') }
-            });
-    };
-
-    search(items, tern) {
-        let tmp = items;
-        switch (this.state.filterItems) {
-            case 'done':
-                tmp = items.filter(item => item.done);
-                break;
-            case 'active1':
-                tmp = items.filter(item => !item.done);
-                break;
-            case 'important':
-                tmp = items.filter(item => item.important);
-                break;
+    toggleRandomPlanet = () => {
+        this.setState(state => {
+            return {
+                showRandomPlanet: !state.showRandomPlanet
+            }
         }
-        if (!tern.length) return tmp;
-        return tmp.filter(item => item.label.toLowerCase().indexOf(tern.toLowerCase()) > -1);// ищет подстроку в строке
-    }
-    searchChange = tern => {
-        this.setState({ tern })
-    };
-
-    filterChange = filterItems => {
-        this.setState({ filterItems })
-    }
-    render() {
-        const { todoData, tern } = this.state,
-            visibleItems = this.search(todoData, tern),
-            doneCount = todoData.filter(el => el.done).length,
-            todoCount = todoData.length - doneCount;
-        return (
-            <div className="todo-app">
-                <AppHeader toDo={todoCount} done={doneCount} />
-                <div className="top-panel d-flex">
-                    <SearchPanel onSearchChange={this.searchChange} />
-                    <ItemStatusFilter onFilterItemsChange={this.filterChange} />
-                </div>
-
-                <TodoList todos={visibleItems}
-                    onDelete={id => {
-                        this.deleteItem(id)
-                    }}
-                    onLabelClick={this.labelClick}
-                    onButtonClick={this.buttonClick}
-                />
-                <AddListItem onAddListItem={this.addItem} />
-
-            </div>
         );
     };
+
+    render() {
+        if (this.state.hasError) return <ErrorIndicator />;
+        const planet = this.state.showRandomPlanet ? <RandomPlanet /> : null;
+        return (
+            <div className="stardb-app">
+                <Header />
+                {planet}
+                <button className="toggle-planet btn btn-warning btn-lg m-1" onClick={this.toggleRandomPlanet}>
+                    Toggle Random Planet
+                </button>
+                <ErrorButton />
+                <PeoplePage />
+                <div className="row mb2">
+                    <div className="col-md-6">
+                        <ItemList onItemSelected={this.onPersonSelected}
+                            getData={this.swapiService.getAllPlanets}
+                        >
+                            {item => (<span>{item.name} <button> Example button</button></span>)} 
+                        </ItemList>
+                        
+                    </div>
+                    <div className="col-md-4">
+                        <PersonDetails personId={this.state.selectedPlanets} />
+                    </div>
+                </div>
+            </div>
+        )
+    }
 }
