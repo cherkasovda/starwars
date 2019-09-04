@@ -1,51 +1,94 @@
 import React, { Component } from 'react';
-import Header from '../header/header';
-import RandomPlanet from '../random-planet/random-planet';
-import ErrorButton from "../error-button/error-button";
-import PeoplePage from "../people-page/people-page";
+
+import Header from '../header';
+import RandomPlanet from '../random-planet';
+import ErrorBoundry from '../error-boundry';
+import SwapiService from '../../services/swapi-service';
+import DummySwapiService from '../../services/dummy-swapi-service';
+
+import {
+  PeoplePage,
+  PlanetsPage,
+  StarshipsPage,
+  LoginPage,
+  SecretPage } from '../pages';
+
+import { SwapiServiceProvider } from '../swapi-service-context';
+
 import './app.css';
-import ErrorIndicator from "../error-indication/error-indication";
 
-
-
+import {BrowserRouter as Router, Switch, Route, Redirect} from 'react-router-dom';
+import StarshipDetails from '../sw-components/starship-details';
 
 export default class App extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            showRandomPlanet: true,
-            selectedPerson: null,
-            hasError: false
 
-        };
-    }
-    componentDidCatch(error, errorInfo) {
-        this.setState({
-            hasError: true
-        })
-    }
+  state = {
+    swapiService: new SwapiService(),
+    isLoggedIn: false
+  };
 
-    toggleRandomPlanet = () => {
-        this.setState(state => {
-            return {
-                showRandomPlanet: !state.showRandomPlanet
-            }}
-        );
-    };
+  onLogin = () => {
+    this.setState({
+      isLoggedIn: true
+    });
+  };
 
-    render() {
-        if (this.state.hasError) return <ErrorIndicator />;
-        const planet = this.state.showRandomPlanet ? <RandomPlanet /> : null;
-        return (
+  onServiceChange = () => {
+    this.setState(({ swapiService }) => {
+      const Service = swapiService instanceof SwapiService ?
+                        DummySwapiService : SwapiService;
+      return {
+        swapiService: new Service()
+      };
+    });
+  };
+
+  render() {
+
+    const { isLoggedIn } = this.state;
+
+    return (
+      <ErrorBoundry>
+        <SwapiServiceProvider value={this.state.swapiService} >
+          <Router>
             <div className="stardb-app">
-                <Header />
-                {planet}
-                <button className="toggle-planet btn btn-warning btn-lg m-1" onClick={this.toggleRandomPlanet}>
-                    Toggle Random Planet
-                </button>
-                <ErrorButton />
-                <PeoplePage />
-                            </div>
-        )
-    }
+              <Header onServiceChange={this.onServiceChange} />
+              <RandomPlanet />
+
+              <Switch>
+                <Route path="/"
+                       render={() => <h2>Welcome to StarDB</h2>}
+                       exact />
+                <Route path="/people/:id?" component={PeoplePage} />
+                <Route path="/planets" component={PlanetsPage} />
+                <Route path="/starships" exact component={StarshipsPage} />
+                <Route path="/starships/:id"
+                       render={({ match }) => {
+                         const { id } = match.params;
+                         return <StarshipDetails itemId={id} />
+                       }}/>
+
+                <Route
+                  path="/login"
+                  render={() => (
+                    <LoginPage
+                      isLoggedIn={isLoggedIn}
+                      onLogin={this.onLogin}/>
+                  )}/>
+
+                <Route
+                  path="/secret"
+                  render={() => (
+                    <SecretPage isLoggedIn={isLoggedIn} />
+                  )}/>
+
+                <Route render={() => <h2>Page not found</h2>} />
+              </Switch>
+
+            </div>
+          </Router>
+        </SwapiServiceProvider>
+      </ErrorBoundry>
+    );
+  }
 }
